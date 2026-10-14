@@ -1,0 +1,36 @@
+## Bài 6: Rà soát Script bảo trì hệ thống
+### Phần 1: Phân tích (Auditing)
+* **Điểm cực kỳ nguy hiểm:** Mã nguồn AI gợi ý `Remove-Item -Path "C:\" -Recurse -Force` sẽ thực hiện **xóa toàn bộ dữ liệu và hệ điều hành trên ổ đĩa `C:\**`.
+* **Ý nghĩa các tham số:**
+* `-Path "C:\"`: Chỉ định đường dẫn bắt đầu xóa từ gốc ổ `C:\`.
+* `-Recurse`: Xóa đệ quy (xóa toàn bộ thư mục con và tệp tin bên trong).
+* `-Force`: Ép buộc xóa cả các tệp hệ thống, tệp ẩn hoặc chỉ đọc mà không cần hỏi xác nhận.
+
+* **Hậu quả:** Làm sập hệ thống (Crash OS), mất toàn bộ dữ liệu quan trọng và không thể khôi phục bình thường.
+* **Áp dụng 3 Nguyên tắc Vàng thẩm định mã AI:**
+1. *Không chạy code AI khi chưa hiểu rõ từng dòng lệnh/tham số.*
+2. *Khoanh vùng đường dẫn (luôn giới hạn phạm vi thao tác trong thư mục dự án).*
+3. *Kiểm tra/chạy thử trên môi trường an toàn (Sandbox/Test) hoặc dùng tham số thử nghiệm (`-WhatIf`).*
+
+### Phần 2: Triển khai (`safe_cleanup.ps1`)
+Tạo tệp `safe_cleanup.ps1` với nội dung mã nguồn an toàn:
+# 1. Di chuyen den thu muc logs cua du an
+Set-Location -Path ".\logs"
+
+# 2. Loc cac dong co chu WARNING tu system.log ra tep issues.txt
+Get-Content -Path "system.log" | Select-String "WARNING" | Out-File -FilePath "issues.txt" -Encoding utf8
+
+# 3. Chi xoa cac tep .tmp ben trong thu muc du an (Khoanh vùng đường dẫn)
+Remove-Item -Path ".\*.tmp" -Force
+
+### Phần 3: Kiểm thử (Verify)
+Các lệnh chạy trên Terminal PowerShell để kiểm tra kết quả:
+1. **Xem nội dung tệp `issues.txt` vừa tạo:**
+Get-Content -Path ".\logs\issues.txt"
+
+2. **Liệt kê lại thư mục để xác nhận các tệp `.tmp` đã bị xóa:**
+Get-ChildItem -Path ".\logs"
+
+3. **Kiểm tra nhanh sự tồn tại của tệp báo cáo `issues.txt` (trả về `True`/`False`):**
+Test-Path -Path ".\logs\issues.txt"
+
